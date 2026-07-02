@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Release Wheel — жеребкування Реліз Менеджера - "Щаслива Шляпа"</title>
+<style>
+  :root{
+    --purple:#875A7B; --purple-light:#B385A6; --teal:#017E84; --teal-light:#28C6C0;
+    --gold:#FFC94D; --pink:#FF6FA5; --cyan:#3DD9E8; --blue:#5B7CFA;
+    --bg-0:#0a0814; --bg-1:#120e24; --panel:rgba(255,255,255,0.045);
+    --panel-border:rgba(255,255,255,0.09); --text:#eef0fb; --text-dim:#9a94b8;
+  }
+  *{box-sizing:border-box;}
+  html{height:100%;}
+  body{
+    margin:0; min-height:100vh; color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(ellipse 80% 60% at 15% 10%, rgba(135,90,123,0.35), transparent 60%),
+               radial-gradient(ellipse 70% 60% at 90% 20%, rgba(1,126,132,0.30), transparent 60%),
+               radial-gradient(ellipse 80% 70% at 50% 100%, rgba(91,124,250,0.20), transparent 60%),
+               linear-gradient(180deg, var(--bg-0), var(--bg-1));
+    background-repeat:no-repeat; background-attachment:fixed; background-size:100% 100%;
+    overflow-x:hidden; position:relative;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.5;
+    background-image:
+      linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+    background-size:42px 42px;
+    -webkit-mask-image:radial-gradient(ellipse 70% 60% at 50% 30%, #000 30%, transparent 75%);
+            mask-image:radial-gradient(ellipse 70% 60% at 50% 30%, #000 30%, transparent 75%);
+  }
+  .blob{position:fixed; border-radius:50%; filter:blur(70px); opacity:.35; z-index:0; pointer-events:none;}
+  .blob-a{width:420px;height:420px; background:var(--purple); top:-120px; left:-100px; animation:float1 16s ease-in-out infinite;}
+  .blob-b{width:380px;height:380px; background:var(--teal); bottom:-140px; right:-100px; animation:float2 20s ease-in-out infinite;}
+  @keyframes float1{0%,100%{transform:translate(0,0);}50%{transform:translate(60px,40px);}}
+  @keyframes float2{0%,100%{transform:translate(0,0);}50%{transform:translate(-50px,-30px);}}
+
+  .hidden{display:none !important;}
+  .app{position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:22px 22px 60px;}
+
+  /* Header */
+  .topbar{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 22px; border-radius:18px;
+    background:var(--panel); border:1px solid var(--panel-border);
+    backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+    box-shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  .brand{display:flex; align-items:center; gap:12px; font-size:19px; font-weight:800; letter-spacing:.2px;}
+  .brand .badge-mini{width:46px;height:46px;flex:none;}
+  .brand-text{background:linear-gradient(90deg,#fff,var(--teal-light) 60%,var(--purple-light));
+    -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .brand-sub{display:block; font-size:11px; font-weight:600; color:var(--text-dim); letter-spacing:.5px;}
+
+  .top-actions{display:flex; align-items:center; gap:10px;}
+  .icon-btn{
+    width:40px; height:40px; border-radius:12px; border:1px solid var(--panel-border);
+    background:rgba(255,255,255,.04); color:var(--text); cursor:pointer; font-size:17px;
+    display:flex; align-items:center; justify-content:center; transition:.2s;
+  }
+  .icon-btn:hover{background:rgba(255,255,255,.09); transform:translateY(-1px);}
+  .user-chip{
+    display:flex; align-items:center; gap:9px; padding:6px 14px 6px 6px; border-radius:12px;
+    background:rgba(255,255,255,.05); border:1px solid var(--panel-border); cursor:pointer; transition:.2s;
+  }
+  .user-chip:hover{background:rgba(255,255,255,.1);}
+  .avatar{
+    width:30px;height:30px;border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:800; color:#fff; flex:none;
+  }
+  .user-chip .uname{font-size:14px; font-weight:700;}
+
+  .demo-banner{
+    margin-top:14px; padding:10px 16px; border-radius:12px; font-size:13px;
+    background:linear-gradient(90deg, rgba(255,201,77,.14), rgba(1,126,132,.14));
+    border:1px solid rgba(255,201,77,.3); color:#ffe6ab; display:flex; justify-content:space-between; gap:12px; align-items:center;
+  }
+  .demo-banner button{background:none;border:none;color:#ffe6ab; text-decoration:underline; cursor:pointer; font-size:13px; font-weight:700;}
+  .sync-banner{background:linear-gradient(90deg, rgba(220,53,69,.16), rgba(255,201,77,.14)); border-color:rgba(220,53,69,.4); color:#ffd3d3;}
+  .sync-status{font-size:12px; color:var(--text-dim); min-width:0; white-space:nowrap;}
+  .sync-status.sync-saving{color:var(--gold);}
+  .sync-status.sync-ok{color:var(--teal-light);}
+  .sync-status.sync-error{color:#ff9d9d;}
+
+  /* Board */
+  .board{display:flex; gap:22px; margin-top:22px; align-items:stretch;}
+  .panel{
+    background:var(--panel); border:1px solid var(--panel-border); border-radius:20px;
+    backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+    box-shadow:0 10px 40px rgba(0,0,0,.35); padding:22px; position:relative;
+  }
+  .roster-panel{flex:1; min-width:340px;}
+  .wheel-panel{flex:1.4; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+
+  .panel-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;}
+  .panel-head h2{margin:0; font-size:16px; letter-spacing:.3px; font-weight:800; text-transform:uppercase; color:var(--text-dim);}
+  .count-pill{font-size:12px; font-weight:700; background:rgba(1,126,132,.18); color:var(--teal-light);
+    padding:4px 10px; border-radius:9px; border:1px solid rgba(1,126,132,.35);}
+
+  .add-row{display:flex; gap:8px; margin-bottom:16px;}
+  .add-row input{
+    flex:1; padding:11px 14px; border-radius:12px; border:1px solid var(--panel-border);
+    background:rgba(0,0,0,.25); color:var(--text); font-size:14px; outline:none; transition:.2s;
+  }
+  .add-row input:focus{border-color:var(--teal-light); box-shadow:0 0 0 3px rgba(1,126,132,.2);}
+  .add-row button{
+    padding:0 18px; border:none; border-radius:12px; cursor:pointer; font-weight:800; font-size:14px;
+    color:#fff; background:linear-gradient(135deg, var(--teal), var(--teal-light)); transition:.2s;
+  }
+  .add-row button:hover{filter:brightness(1.12); transform:translateY(-1px);}
+
+  .roster-list{max-height:400px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding-right:4px;}
+  .roster-list::-webkit-scrollbar{width:6px;}
+  .roster-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15); border-radius:6px;}
+
+  .p-item{
+    display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:14px;
+    background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); transition:.2s;
+  }
+  .p-item:hover{background:rgba(255,255,255,.06);}
+  .p-item.is-absent{opacity:.45;}
+  .p-item .avatar{width:34px;height:34px; font-size:13px;}
+  .p-name{flex:1; min-width:0;}
+  .p-name .n{font-weight:700; font-size:14.5px; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .p-tag{font-size:11px; color:var(--text-dim); display:block; margin-top:1px;}
+  .p-tag.chance{color:var(--teal-light); font-weight:700;}
+  .p-tag.cooldown{color:var(--gold);}
+  .p-tag.absent{color:#ff9d9d;}
+  .p-actions{display:flex; gap:6px; flex:none;}
+  .chip-btn{
+    border:1px solid var(--panel-border); background:rgba(255,255,255,.04); color:var(--text-dim);
+    font-size:11px; padding:6px 9px; border-radius:9px; cursor:pointer; font-weight:700; white-space:nowrap; transition:.2s;
+  }
+  .chip-btn:hover{background:rgba(255,255,255,.1); color:var(--text);}
+  .chip-btn.active{background:rgba(255,157,157,.18); color:#ff9d9d; border-color:rgba(255,157,157,.35);}
+  .chip-btn.danger:hover{background:rgba(220,53,69,.25); color:#ff9d9d;}
+  .empty-hint{color:var(--text-dim); font-size:13px; text-align:center; padding:30px 10px;}
+
+  .fairness-note{
+    margin-top:14px; font-size:12px; color:var(--text-dim); background:rgba(255,255,255,.03);
+    border:1px dashed rgba(255,255,255,.12); border-radius:12px; padding:10px 12px; line-height:1.5;
+  }
+
+  /* Wheel */
+  .settings-fab{position:absolute; top:18px; right:18px;}
+  .wheel-stage{position:relative; width:380px; height:380px; margin:8px auto 26px;
+    display:flex; align-items:center; justify-content:center;}
+  .wheel-glow{position:absolute; inset:-30px; border-radius:50%;
+    background:conic-gradient(from 0deg, #4a2f66, #0d4a4d, #233a7a, #5c1f45, #7a4a12, #4a2f66);
+    filter:blur(38px); opacity:.4; animation:spinGlow 8s linear infinite;}
+  @keyframes spinGlow{to{transform:rotate(360deg);}}
+  .wheel-disc{position:relative; width:100%; height:100%; border-radius:50%;
+    transition:transform 6.4s cubic-bezier(0.13,0.71,0.14,1.0);
+    filter:drop-shadow(0 16px 34px rgba(0,0,0,.65));}
+  #wheelCanvas{width:100%; height:100%; border-radius:50%; display:block;}
+  .hub-pin{position:absolute; top:50%; left:50%; width:30px; height:30px; margin:-15px 0 0 -15px;
+    border-radius:50%; background:radial-gradient(circle at 35% 30%, #6b5a1a 0%, #1c1730 42%, #14102a 100%);
+    border:2.5px solid #caa34d; box-shadow:0 3px 10px rgba(0,0,0,.6); z-index:5;}
+  .pointer{
+    position:absolute; right:-20px; top:50%; transform:translateY(-50%); z-index:6;
+    width:42px; height:34px; filter:drop-shadow(2px 3px 5px rgba(0,0,0,.6));
+  }
+
+  #confettiCanvas{position:absolute; inset:-140px -60px; pointer-events:none; z-index:20;}
+
+  .spin-btn{
+    border:none; cursor:pointer; padding:16px 46px; border-radius:16px; font-size:17px; font-weight:800;
+    color:#fff; letter-spacing:.3px; background:linear-gradient(135deg, var(--purple), var(--teal));
+    box-shadow:0 10px 30px rgba(1,126,132,.35), 0 0 0 1px rgba(255,255,255,.08) inset; transition:.2s;
+  }
+  .spin-btn:hover:not(:disabled){transform:translateY(-2px); box-shadow:0 14px 36px rgba(1,126,132,.5);}
+  .spin-btn:active:not(:disabled){transform:translateY(0px) scale(.98);}
+  .spin-btn:disabled{background:#3a3550; color:#877fa3; cursor:not-allowed; box-shadow:none;}
+
+  /* Winner reveal */
+  .winner-overlay{
+    position:absolute; inset:-60px; z-index:30; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:10px; text-align:center; opacity:0; pointer-events:none; transition:opacity .35s;
+  }
+  .winner-overlay.show{opacity:1; pointer-events:auto;}
+  .winner-scrim{position:absolute; inset:0; border-radius:34px;
+    background:radial-gradient(ellipse at 50% 45%, rgba(15,10,30,.92), rgba(10,8,20,.97) 75%);}
+  .winner-inner{position:relative; z-index:2; display:flex; flex-direction:column; align-items:center; gap:8px;}
+  .badge-wrap{width:150px; height:150px; display:flex; align-items:center; justify-content:center;
+    transform:scale(.2) rotate(-25deg); opacity:0;}
+  .winner-overlay.show .badge-wrap{animation:badgeIn .7s cubic-bezier(.34,1.56,.64,1) .15s forwards;}
+  @keyframes badgeIn{to{transform:scale(1) rotate(0deg); opacity:1;}}
+  .badge-wrap img{width:100%; height:100%; object-fit:cover; border-radius:20px; border:3px solid rgba(255,255,255,.85);
+    box-shadow:0 8px 26px rgba(0,0,0,.5);}
+  .badge-wrap svg{width:100%; height:100%;}
+  .winner-kicker{font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--gold); font-weight:800;
+    opacity:0; animation:fadeUp .5s ease .5s forwards;}
+  .winner-name{font-size:30px; font-weight:900; opacity:0; animation:fadeUp .5s ease .62s forwards;
+    background:linear-gradient(90deg,#fff, var(--teal-light), var(--gold)); -webkit-background-clip:text;
+    background-clip:text; color:transparent;}
+  .winner-rocket{font-size:20px; opacity:0; animation:fadeUp .5s ease .74s forwards;}
+  @keyframes fadeUp{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+  .winner-actions{display:flex; gap:10px; margin-top:6px; opacity:0; animation:fadeUp .5s ease .9s forwards;}
+  .winner-actions button{
+    border:1px solid var(--panel-border); background:rgba(255,255,255,.06); color:var(--text);
+    padding:9px 16px; border-radius:12px; cursor:pointer; font-size:13px; font-weight:700; transition:.2s;
+  }
+  .winner-actions button:hover{background:rgba(255,255,255,.14);}
+  .winner-actions button.primary{background:linear-gradient(135deg, var(--purple), var(--teal)); border:none;}
+
+  /* History */
+  .history-dock{margin-top:20px;}
+  .history-toggle{
+    width:100%; text-align:left; padding:14px 20px; border-radius:16px; cursor:pointer;
+    background:var(--panel); border:1px solid var(--panel-border); color:var(--text); font-weight:700; font-size:14px;
+    display:flex; justify-content:space-between; align-items:center; backdrop-filter:blur(14px);
+  }
+  .history-panel{margin-top:10px; padding:16px 20px; border-radius:16px; background:var(--panel);
+    border:1px solid var(--panel-border); backdrop-filter:blur(14px);}
+  .timeline{list-style:none; margin:0; padding:0;}
+  .timeline li{position:relative; padding:0 0 16px 26px; border-left:2px solid rgba(255,255,255,.12); margin-left:6px;}
+  .timeline li:last-child{border-color:transparent; padding-bottom:0;}
+  .timeline li::before{content:""; position:absolute; left:-7px; top:2px; width:12px; height:12px; border-radius:50%;
+    background:linear-gradient(135deg,var(--purple),var(--teal)); box-shadow:0 0 0 3px rgba(255,255,255,.08);}
+  .t-name{font-weight:800; font-size:14px;}
+  .t-meta{font-size:12px; color:var(--text-dim); margin-top:2px;}
+  .clear-history{margin-top:12px; background:none; border:none; color:#ff9d9d; font-size:12px; cursor:pointer; text-decoration:underline;}
+
+  /* Modals */
+  .modal-overlay{position:fixed; inset:0; background:rgba(6,4,14,.72); backdrop-filter:blur(4px);
+    display:flex; align-items:center; justify-content:center; z-index:1000; padding:20px;}
+  .modal-card{width:100%; max-width:400px; background:linear-gradient(180deg,#1c1730,#140f24);
+    border:1px solid var(--panel-border); border-radius:20px; padding:26px; box-shadow:0 20px 60px rgba(0,0,0,.6);}
+  .modal-card h3{margin:0 0 6px; font-size:19px;}
+  .modal-card p.sub{margin:0 0 18px; font-size:13px; color:var(--text-dim);}
+  .modal-card label{display:block; font-size:12px; font-weight:700; color:var(--text-dim); margin-bottom:6px; margin-top:14px;}
+  .modal-card input[type=text]{
+    width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--panel-border);
+    background:rgba(0,0,0,.3); color:var(--text); font-size:14px; outline:none;
+  }
+  .modal-card input[type=text]:focus{border-color:var(--teal-light);}
+  .modal-actions{display:flex; gap:10px; margin-top:22px;}
+  .modal-actions button{flex:1; padding:12px; border-radius:12px; border:none; cursor:pointer; font-weight:800; font-size:14px;}
+  .btn-ghost{background:rgba(255,255,255,.06); color:var(--text); border:1px solid var(--panel-border) !important;}
+  .btn-ghost:hover{background:rgba(255,255,255,.12);}
+  .btn-primary{background:linear-gradient(135deg,var(--purple),var(--teal)); color:#fff;}
+  .btn-primary:hover{filter:brightness(1.1);}
+
+  .settings-row{display:flex; align-items:center; justify-content:space-between; padding:12px 0;
+    border-bottom:1px solid rgba(255,255,255,.07);}
+  .settings-row:last-of-type{border-bottom:none;}
+  .settings-row .lbl{font-size:14px; font-weight:700;}
+  .settings-row .desc{font-size:12px; color:var(--text-dim); margin-top:2px;}
+  .switch{position:relative; width:46px; height:26px; flex:none;}
+  .switch input{opacity:0; width:0; height:0;}
+  .switch-track{position:absolute; inset:0; background:rgba(255,255,255,.15); border-radius:999px; cursor:pointer; transition:.2s;}
+  .switch-track::before{content:""; position:absolute; width:20px; height:20px; left:3px; top:3px; background:#fff;
+    border-radius:50%; transition:.2s;}
+  .switch input:checked + .switch-track{background:linear-gradient(135deg,var(--purple),var(--teal));}
+  .switch input:checked + .switch-track::before{transform:translateX(20px);}
+  .prize-preview{width:100%; height:120px; border-radius:14px; overflow:hidden; margin:10px 0; background:rgba(0,0,0,.25);
+    display:flex; align-items:center; justify-content:center; border:1px solid var(--panel-border);}
+  .prize-preview img{width:100%; height:100%; object-fit:cover;}
+  .prize-preview svg{width:70px; height:70px;}
+  .file-row{display:flex; gap:8px;}
+  .file-row label.upl{flex:1; text-align:center; padding:10px; border-radius:10px; border:1px dashed var(--panel-border);
+    cursor:pointer; font-size:13px; font-weight:700; color:var(--text-dim);}
+  .file-row label.upl:hover{color:var(--text); border-color:var(--teal-light);}
+  .danger-zone{margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,157,157,.2);}
+  .danger-zone button{width:100%; background:rgba(220,53,69,.14); color:#ff9d9d; border:1px solid rgba(220,53,69,.35);
+    padding:10px; border-radius:10px; cursor:pointer; font-weight:700; font-size:13px;}
+
+  @media (max-width:900px){
+    .board{flex-direction:column;}
+    .wheel-panel{width:100%;}
+  }
+</style>
+</head>
+<body>
+<div class="blob blob-a"></div>
+<div class="blob blob-b"></div>
+
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <svg class="badge-mini" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="medPurple" cx="35%" cy="30%" r="75%">
+            <stop offset="0%" stop-color="#9c6f8f"/>
+            <stop offset="100%" stop-color="#6b2b55"/>
+          </radialGradient>
+          <linearGradient id="medGold" x1="0" y1="0" x2="100" y2="100">
+            <stop offset="0%" stop-color="#FFE08A"/>
+            <stop offset="100%" stop-color="#D9A431"/>
+          </linearGradient>
+        </defs>
+        <circle cx="50" cy="50" r="48" fill="url(#medPurple)" stroke="url(#medGold)" stroke-width="3"/>
+        <circle cx="50" cy="50" r="24" fill="#fff" stroke="url(#medGold)" stroke-width="3"/>
+        <circle cx="50" cy="50" r="18.5" fill="#fff" stroke="#714B67" stroke-width="1.4"/>
+        <text x="50" y="54.5" text-anchor="middle" font-family="-apple-system, Segoe UI, sans-serif" font-weight="800" font-size="13" fill="#5b3a53" letter-spacing="0.2">odoo</text>
+      </svg>
+      <span><span class="brand-text">RELEASE WHEEL</span><span class="brand-sub">Жеребкування Реліз Менеджера - "Щаслива Шляпа"</span></span>
+    </div>
+    <div class="top-actions">
+      <span id="syncStatus" class="sync-status"></span>
+      <button class="icon-btn" title="Оновити спільні дані" onclick="refreshFromRemote()">🔄</button>
+      <button class="icon-btn" id="soundToggleBtn" title="Звук" onclick="toggleSound()">🔊</button>
+      <button class="icon-btn" title="Налаштування" onclick="openSettings()">⚙️</button>
+      <div class="user-chip" onclick="openUserModal()">
+        <span class="avatar" id="headerAvatar" style="background:#555">?</span>
+        <span class="uname" id="headerName">Представитись</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="syncBanner" class="demo-banner sync-banner hidden">
+    <span id="syncBannerText"></span>
+  </div>
+
+  <div id="demoBanner" class="demo-banner hidden">
+    <span>🎉 Це демо-склад для прикладу. Додайте свою команду та приберіть демо-учасників.</span>
+    <button onclick="dismissDemo()">Зрозуміло</button>
+  </div>
+
+  <div class="board">
+    <section class="panel roster-panel">
+      <div class="panel-head">
+        <h2>Команда</h2>
+        <span class="count-pill" id="activeCountPill">0 в грі</span>
+      </div>
+      <div class="add-row">
+        <input type="text" id="newName" placeholder="Ім'я нового учасника" onkeydown="if(event.key==='Enter')addParticipant()">
+        <button onclick="addParticipant()">+ Додати</button>
+      </div>
+      <div id="rosterList" class="roster-list"></div>
+      <div class="fairness-note">⚖️ Шанс на колесі росте, чим довше людина не була Реліз Менеджером. Той, хто виграв нещодавно — тимчасово на кулдауні. Позначені «Відсутній» у розіграші не беруть участь, але лишаються в списку.</div>
+    </section>
+
+    <section class="panel wheel-panel">
+      <div class="wheel-stage">
+        <div class="wheel-glow"></div>
+        <div class="wheel-disc" id="wheelDisc">
+          <canvas id="wheelCanvas" width="760" height="760"></canvas>
+        </div>
+        <div class="hub-pin"></div>
+        <svg class="pointer" viewBox="0 0 42 34" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="ptrGrad" x1="0" y1="0" x2="42" y2="34">
+              <stop offset="0%" stop-color="#fdf3d6"/>
+              <stop offset="50%" stop-color="#d9c07a"/>
+              <stop offset="100%" stop-color="#8a6a2c"/>
+            </linearGradient>
+          </defs>
+          <polygon points="40,2 40,32 4,17" fill="url(#ptrGrad)" stroke="#6b5220" stroke-width="1.2"/>
+        </svg>
+        <canvas id="confettiCanvas" width="700" height="700"></canvas>
+
+        <div class="winner-overlay" id="winnerOverlay">
+          <div class="winner-scrim"></div>
+          <div class="winner-inner">
+            <div class="badge-wrap" id="badgeWrap"></div>
+            <div class="winner-kicker">🚀 Новий Реліз Менеджер</div>
+            <div class="winner-name" id="winnerNameEl"></div>
+            <div class="winner-rocket" id="winnerDateEl"></div>
+            <div class="winner-actions">
+              <button onclick="copyResult()">📋 Скопіювати</button>
+              <button class="primary" onclick="closeWinner()">Готово</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button id="spinBtn" class="spin-btn" onclick="startRaffle()">Запустити жеребкування</button>
+    </section>
+  </div>
+
+  <div class="history-dock">
+    <button class="history-toggle" onclick="toggleHistory()">
+      <span>🕓 Історія розіграшів</span><span id="historyCount">0</span>
+    </button>
+    <div id="historyPanel" class="history-panel hidden">
+      <ul id="historyList" class="timeline"></ul>
+      <button class="clear-history" onclick="clearHistory()">Очистити історію</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- User modal -->
+<div id="userModal" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h3>Як вас звати?</h3>
+    <p class="sub">Просто для підпису в історії розіграшів — без паролів.</p>
+    <label>Ваше ім'я</label>
+    <input type="text" id="userNameInput" placeholder="Наприклад, Олена" autocomplete="off">
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeUserModal()">Пропустити</button>
+      <button class="btn-primary" onclick="saveUserName()">Зберегти</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings modal -->
+<div id="settingsModal" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h3>Налаштування</h3>
+    <p class="sub">Персоналізуйте розіграш під свою команду.</p>
+
+    <div class="settings-row">
+      <div><div class="lbl">Звукові ефекти</div><div class="desc">Тікання під час обертання й фанфари переможцю</div></div>
+      <label class="switch"><input type="checkbox" id="soundSwitch" onchange="setSound(this.checked)"><span class="switch-track"></span></label>
+    </div>
+
+    <label>Зображення призу</label>
+    <div class="prize-preview" id="prizePreview"></div>
+    <div class="file-row">
+      <label class="upl">📤 Завантажити зображення<input type="file" accept="image/*" class="hidden" id="prizeFileInput" onchange="handlePrizeUpload(event)"></label>
+      <button class="chip-btn" onclick="resetPrizeImage()">Скинути</button>
+    </div>
+
+    <div class="danger-zone">
+      <button onclick="resetAll()">Скинути весь застосунок (учасники, історія)</button>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-primary" style="flex:none; width:100%;" onclick="closeSettings()">Готово</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ==================== НАЛАШТУВАННЯ СИНХРОНІЗАЦІЇ ====================
+   Заповніть цей блок своїми даними ПЕРЕД тим, як покласти файл у репозиторій:
+   - owner/repo/branch    -> ваш публічний GitHub-репозиторій
+   - workerUrl             -> адреса задеплоєного Cloudflare Worker (worker.js),
+                              яку Cloudflare видасть після деплою
+   Детальні кроки — у README, який іде разом із цим файлом.
+*/
+const SYNC_CONFIG = {
+  owner: 'YOUR_GITHUB_USERNAME',
+  repo: 'YOUR_REPO_NAME',
+  branch: 'main',
+  rosterPath: 'data/roster.json',
+  historyPath: 'data/history.csv',
+  workerUrl: 'https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev'
+};
+function syncConfigured(){
+  return !SYNC_CONFIG.owner.startsWith('YOUR_') &&
+         !SYNC_CONFIG.repo.startsWith('YOUR_') &&
+         !SYNC_CONFIG.workerUrl.includes('YOUR-WORKER');
+}
+function rawUrl(path){
+  return `https://raw.githubusercontent.com/${SYNC_CONFIG.owner}/${SYNC_CONFIG.repo}/${SYNC_CONFIG.branch}/${path}?t=${Date.now()}`;
+}
+
+/* ==================== СХОВИЩЕ (спільний стан у GitHub-репозиторії) ==================== */
+const LOCAL_USER_KEY = 'releaseWheel_localUser'; /* хто "я" — лишається лише в цьому браузері */
+const PALETTE = ['#4a2f66','#0d4a4d','#233a7a','#5c1f45','#5c4212','#1f4a5c','#6b1f35','#1f5c3f','#3f1f6b','#7a4a12'];
+const DEMO_NAMES = ['Олена Ковальчук','Максим Бондаренко','Ірина Ткаченко','Дмитро Мельник','Анна Савчук','Тарас Литвин'];
+
+function makeParticipant(name, idx){
+  return {
+    id: 'p' + Date.now().toString(36) + Math.floor(Math.random()*10000),
+    name: name,
+    color: PALETTE[idx % PALETTE.length],
+    absent: false,
+    lastWinDraw: null
+  };
+}
+
+function defaultState(){
+  return {
+    firstRun: true,
+    currentUser: localStorage.getItem(LOCAL_USER_KEY) || null,
+    participants: DEMO_NAMES.map((name,i)=>makeParticipant(name,i)),
+    history: [],
+    drawCounter: 0,
+    settings: { sound:true, prizeImage:null },
+    syncError: null
+  };
+}
+
+/* --- CSV (лог розіграшів, у хронологічному порядку — зручно для git diff) --- */
+function csvEscape(field){
+  const s = String(field == null ? '' : field);
+  if(/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+  return s;
+}
+function historyToCSV(history){
+  const chronological = history.slice().reverse();
+  const rows = [['winner','date','by']];
+  chronological.forEach(h => rows.push([h.name, h.date, h.by]));
+  return rows.map(r => r.map(csvEscape).join(',')).join('\n') + '\n';
+}
+function csvParseLine(line){
+  const out = []; let cur = ''; let inQ = false;
+  for(let i=0;i<line.length;i++){
+    const c = line[i];
+    if(inQ){
+      if(c === '"'){ if(line[i+1] === '"'){ cur += '"'; i++; } else { inQ = false; } }
+      else cur += c;
+    } else {
+      if(c === '"') inQ = true;
+      else if(c === ','){ out.push(cur); cur = ''; }
+      else cur += c;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+function csvToHistory(text){
+  const lines = text.split(/\r?\n/).filter(l => l.length > 0);
+  if(lines.length <= 1) return [];
+  return lines.slice(1).map(line => {
+    const [name, date, by] = csvParseLine(line);
+    return { name: name || '', date: date || '', by: by || '' };
+  }).reverse(); /* назад у "найновіше зверху", як очікує решта коду */
+}
+
+async function fetchRosterRemote(){
+  const resp = await fetch(rawUrl(SYNC_CONFIG.rosterPath), { cache:'no-store' });
+  if(resp.status === 404) return null; /* файл ще не створено в репозиторії */
+  if(!resp.ok) throw new Error('roster fetch ' + resp.status);
+  return resp.json();
+}
+async function fetchHistoryRemote(){
+  const resp = await fetch(rawUrl(SYNC_CONFIG.historyPath), { cache:'no-store' });
+  if(resp.status === 404) return [];
+  if(!resp.ok) throw new Error('history fetch ' + resp.status);
+  return csvToHistory(await resp.text());
+}
+
+async function loadState(){
+  const base = defaultState();
+  if(!syncConfigured()){ base.syncError = 'notConfigured'; return base; }
+  try{
+    const [roster, history] = await Promise.all([fetchRosterRemote(), fetchHistoryRemote()]);
+    if(roster){
+      base.firstRun = false;
+      base.participants = Array.isArray(roster.participants) ? roster.participants : base.participants;
+      base.drawCounter = typeof roster.drawCounter === 'number' ? roster.drawCounter : 0;
+      base.settings = Object.assign({sound:true, prizeImage:null}, roster.settings || {});
+    }
+    base.history = history;
+  }catch(e){
+    base.syncError = 'network';
+  }
+  return base;
+}
+
+async function pushSave(path, content, message){
+  const resp = await fetch(SYNC_CONFIG.workerUrl.replace(/\/$/,'') + '/save', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ path, content, message })
+  });
+  if(!resp.ok) throw new Error('save ' + path + ' failed: ' + resp.status);
+}
+
+function setSyncStatus(kind, text){
+  const el = document.getElementById('syncStatus');
+  if(!el) return;
+  el.textContent = text;
+  el.className = 'sync-status sync-' + kind;
+}
+
+async function saveState(){
+  if(state.currentUser) localStorage.setItem(LOCAL_USER_KEY, state.currentUser);
+  else localStorage.removeItem(LOCAL_USER_KEY);
+
+  if(!syncConfigured()){
+    setSyncStatus('error', 'Синхронізацію не налаштовано');
+    return;
+  }
+  setSyncStatus('saving', 'Синхронізація…');
+  try{
+    const rosterContent = JSON.stringify({
+      participants: state.participants,
+      drawCounter: state.drawCounter,
+      settings: state.settings,
+      updatedAt: new Date().toISOString()
+    }, null, 2);
+    await pushSave(SYNC_CONFIG.rosterPath, rosterContent, 'release-wheel: оновлення складу команди');
+    await pushSave(SYNC_CONFIG.historyPath, historyToCSV(state.history), 'release-wheel: оновлення історії');
+    setSyncStatus('ok', 'Синхронізовано ✓');
+  }catch(e){
+    setSyncStatus('error', 'Не вдалося зберегти — перевірте Worker/мережу');
+  }
+}
+
+async function refreshFromRemote(){
+  setSyncStatus('saving', 'Оновлення…');
+  const fresh = await loadState();
+  fresh.currentUser = state.currentUser;
+  state = fresh;
+  renderRoster(); renderHistory(); renderPrizePreview(); drawWheel(); updateHeaderUser();
+  setSyncStatus(state.syncError ? 'error' : 'ok', state.syncError ? 'Не вдалося оновити' : 'Оновлено ✓');
+}
+
+let state = defaultState();
+
+/* ==================== ІНІЦІАЛІЗАЦІЯ ==================== */
+window.onload = async () => {
+  state = await loadState();
+
+  if(!syncConfigured()){
+    showSyncBanner('⚠️ Синхронізацію не налаштовано. Відкрийте файл, знайдіть SYNC_CONFIG на початку коду і впишіть свій owner/repo/workerUrl (див. README).');
+  } else if(state.syncError === 'network'){
+    showSyncBanner('⚠️ Не вдалося завантажити спільні дані з GitHub. Показано порожній стан локально — перевірте посилання на Worker і назву репозиторію.');
+  } else if(state.firstRun){
+    document.getElementById('demoBanner').classList.remove('hidden');
+  }
+
+  if(state.currentUser){ updateHeaderUser(); }
+  document.getElementById('soundSwitch').checked = state.settings.sound;
+  updateSoundIcon();
+  renderPrizePreview();
+  renderRoster();
+  renderHistory();
+  drawWheel();
+
+  window.addEventListener('resize', drawWheel);
+  window.addEventListener('focus', () => { if(syncConfigured()) refreshFromRemote(); });
+};
+
+function showSyncBanner(text){
+  document.getElementById('syncBannerText').textContent = text;
+  document.getElementById('syncBanner').classList.remove('hidden');
+}
+
+function dismissDemo(){
+  state.firstRun = false;
+  saveState();
+  document.getElementById('demoBanner').classList.add('hidden');
+}
+
+/* ==================== КОРИСТУВАЧ (легка ідентифікація) ==================== */
+function initialsOf(name){
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if(parts.length === 0) return '?';
+  if(parts.length === 1) return parts[0].slice(0,2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+function colorFromString(str){
+  let h = 0;
+  for(let i=0;i<str.length;i++) h = str.charCodeAt(i) + ((h<<5)-h);
+  return PALETTE[Math.abs(h) % PALETTE.length];
+}
+function openUserModal(){
+  document.getElementById('userNameInput').value = state.currentUser || '';
+  document.getElementById('userModal').classList.remove('hidden');
+}
+function closeUserModal(){ document.getElementById('userModal').classList.add('hidden'); }
+function saveUserName(){
+  const v = document.getElementById('userNameInput').value.trim();
+  state.currentUser = v || null;
+  saveState();
+  updateHeaderUser();
+  closeUserModal();
+}
+function updateHeaderUser(){
+  const nameEl = document.getElementById('headerName');
+  const avEl = document.getElementById('headerAvatar');
+  if(state.currentUser){
+    nameEl.innerText = state.currentUser;
+    avEl.innerText = initialsOf(state.currentUser);
+    avEl.style.background = colorFromString(state.currentUser);
+  } else {
+    nameEl.innerText = 'Представитись';
+    avEl.innerText = '?';
+    avEl.style.background = '#555';
+  }
+}
+
+/* ==================== НАЛАШТУВАННЯ ==================== */
+function openSettings(){ document.getElementById('settingsModal').classList.remove('hidden'); }
+function closeSettings(){ document.getElementById('settingsModal').classList.add('hidden'); }
+function setSound(v){ state.settings.sound = v; saveState(); updateSoundIcon(); }
+function toggleSound(){
+  state.settings.sound = !state.settings.sound;
+  document.getElementById('soundSwitch').checked = state.settings.sound;
+  saveState(); updateSoundIcon();
+}
+function updateSoundIcon(){
+  document.getElementById('soundToggleBtn').innerText = state.settings.sound ? '🔊' : '🔇';
+}
+function handlePrizeUpload(e){
+  const input = e.target;
+  const file = input.files[0];
+  if(!file) return;
+  if(!file.type.startsWith('image/')){
+    alert('Оберіть файл зображення.');
+    input.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    const img = new Image();
+    img.onload = function(){
+      /* стискаємо/зменшуємо фото, щоб не впертись у ліміт localStorage */
+      const maxSide = 480;
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if(w > h && w > maxSide){ h = Math.round(h * maxSide / w); w = maxSide; }
+      else if(h >= w && h > maxSide){ w = Math.round(w * maxSide / h); h = maxSide; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+      const prevImage = state.settings.prizeImage;
+      state.settings.prizeImage = dataUrl;
+      try{
+        saveState();
+      }catch(err){
+        state.settings.prizeImage = prevImage;
+        alert('Це зображення занадто велике, щоб зберегти локально. Спробуйте менший файл.');
+        input.value = '';
+        return;
+      }
+      renderPrizePreview();
+      input.value = '';
+    };
+    img.onerror = function(){
+      alert('Не вдалося розпізнати зображення. Спробуйте інший файл.');
+      input.value = '';
+    };
+    img.src = ev.target.result;
+  };
+  reader.onerror = function(){
+    alert('Не вдалося прочитати файл.');
+    input.value = '';
+  };
+  reader.readAsDataURL(file);
+}
+function resetPrizeImage(){
+  state.settings.prizeImage = null;
+  saveState();
+  renderPrizePreview();
+  const input = document.getElementById('prizeFileInput');
+  if(input) input.value = '';
+}
+function renderPrizePreview(){
+  const box = document.getElementById('prizePreview');
+  box.innerHTML = '';
+  if(state.settings.prizeImage){
+    const img = document.createElement('img');
+    img.src = state.settings.prizeImage;
+    box.appendChild(img);
+  } else {
+    box.innerHTML = defaultBadgeSVG();
+  }
+}
+async function resetAll(){
+  if(!confirm('Точно видалити усіх учасників та історію ДЛЯ ВСІХ? Це запишеться в спільний репозиторій і незворотньо.')) return;
+  state.participants = [];
+  state.history = [];
+  state.drawCounter = 0;
+  state.settings = { sound:true, prizeImage:null };
+  state.firstRun = true;
+  await saveState();
+  document.getElementById('demoBanner').classList.remove('hidden');
+  renderRoster(); renderHistory(); renderPrizePreview(); drawWheel();
+  closeSettings();
+}
+
+/* ==================== БЕЙДЖ ЗА ЗАМОВЧУВАННЯМ (кубок Odoo) ==================== */
+function defaultBadgeSVG(){
+  return `<svg width="100%" height="100%" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="trophyGlow" cx="50%" cy="42%" r="60%">
+        <stop offset="0%" stop-color="#caa34d" stop-opacity="0.35"/>
+        <stop offset="100%" stop-color="#caa34d" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="trophyGold" x1="0" y1="0" x2="120" y2="120">
+        <stop offset="0%" stop-color="#fdf3d6"/>
+        <stop offset="45%" stop-color="#d9c07a"/>
+        <stop offset="100%" stop-color="#8a6a2c"/>
+      </linearGradient>
+    </defs>
+    <circle cx="60" cy="56" r="54" fill="url(#trophyGlow)"/>
+    <path d="M20,26 C14,28 12,40 24,46" fill="none" stroke="url(#trophyGold)" stroke-width="5" stroke-linecap="round"/>
+    <path d="M100,26 C106,28 108,40 96,46" fill="none" stroke="url(#trophyGold)" stroke-width="5" stroke-linecap="round"/>
+    <path d="M32,22 C32,18 40,15 60,15 C80,15 88,18 88,22 C88,33 79,44 67,50 L67,58 L53,58 L53,50 C41,44 32,33 32,22 Z" fill="url(#trophyGold)" stroke="#6b5220" stroke-width="1"/>
+    <rect x="53" y="58" width="14" height="11" fill="url(#trophyGold)"/>
+    <circle cx="60" cy="73" r="6.5" fill="url(#trophyGold)" stroke="#6b5220" stroke-width="1"/>
+    <rect x="55" y="78" width="10" height="9" fill="url(#trophyGold)"/>
+    <rect x="38" y="87" width="44" height="9" rx="3" fill="url(#trophyGold)" stroke="#6b5220" stroke-width="1"/>
+    <rect x="31" y="97" width="58" height="8" rx="3" fill="url(#trophyGold)" stroke="#6b5220" stroke-width="1"/>
+    <rect x="39" y="28" width="42" height="17" rx="3" fill="#1c1730" stroke="#caa34d" stroke-width="1.5"/>
+    <text x="60" y="40.5" text-anchor="middle" font-family="-apple-system, Segoe UI, sans-serif" font-weight="800" font-size="12" letter-spacing="0.5" fill="#f0dba0">ODOO</text>
+    <path d="M22,16 l1.6,3.6 l3.6,1.6 l-3.6,1.6 l-1.6,3.6 l-1.6,-3.6 l-3.6,-1.6 l3.6,-1.6 Z" fill="#f0dba0" opacity="0.85"/>
+    <path d="M98,14 l1.3,2.9 l2.9,1.3 l-2.9,1.3 l-1.3,2.9 l-1.3,-2.9 l-2.9,-1.3 l2.9,-1.3 Z" fill="#f0dba0" opacity="0.7"/>
+  </svg>`;
+}
+
+/* ==================== РОСТЕР ==================== */
+function addParticipant(){
+  const input = document.getElementById('newName');
+  const name = input.value.trim();
+  if(!name) return;
+  if(state.participants.some(p => p.name.toLowerCase() === name.toLowerCase())){
+    alert('Ця людина вже є в списку!'); return;
+  }
+  state.participants.push(makeParticipant(name, state.participants.length));
+  saveState();
+  input.value = '';
+  renderRoster();
+  drawWheel();
+}
+function toggleAbsent(id){
+  const p = state.participants.find(x => x.id === id);
+  if(!p) return;
+  p.absent = !p.absent;
+  saveState();
+  renderRoster();
+  drawWheel();
+}
+function deleteParticipant(id){
+  const p = state.participants.find(x => x.id === id);
+  if(!p) return;
+  if(!confirm(`Видалити учасника: ${p.name}?`)) return;
+  state.participants = state.participants.filter(x => x.id !== id);
+  saveState();
+  renderRoster();
+  drawWheel();
+}
+
+function cooldownFor(activeCount){
+  return Math.max(1, Math.min(3, activeCount - 1));
+}
+
+function computeWeights(){
+  const active = state.participants.filter(p => !p.absent);
+  const cd = cooldownFor(active.length);
+  const rows = active.map(p => {
+    const sinceWin = (p.lastWinDraw === null) ? Infinity : (state.drawCounter - p.lastWinDraw);
+    const onCooldown = sinceWin < cd;
+    const weight = onCooldown ? 0 : Math.min(sinceWin === Infinity ? 6 : sinceWin, 6);
+    return { p, sinceWin, onCooldown, weight, cd };
+  });
+  const totalWeight = rows.reduce((s,r) => s + r.weight, 0);
+  return { rows, totalWeight, cd };
+}
+
+function renderRoster(){
+  const list = document.getElementById('rosterList');
+  list.innerHTML = '';
+  document.getElementById('activeCountPill').innerText = state.participants.filter(p=>!p.absent).length + ' в грі';
+
+  if(state.participants.length === 0){
+    list.innerHTML = '<div class="empty-hint">Список порожній. Додайте першого учасника команди 👆</div>';
+    return;
+  }
+
+  const { rows, totalWeight } = computeWeights();
+  const weightMap = {};
+  rows.forEach(r => weightMap[r.p.id] = r);
+
+  state.participants.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'p-item' + (p.absent ? ' is-absent' : '');
+    let tagHtml;
+    if(p.absent){
+      tagHtml = `<span class="p-tag absent">😴 Відсутній</span>`;
+    } else {
+      const w = weightMap[p.id];
+      if(w && w.onCooldown){
+        tagHtml = `<span class="p-tag cooldown">⏳ Кулдаун (${w.cd - w.sinceWin} до участі)</span>`;
+      } else if(w && totalWeight > 0){
+        const pct = Math.round((w.weight / totalWeight) * 100);
+        tagHtml = `<span class="p-tag chance">🎯 Шанс ~${pct}%</span>`;
+      } else {
+        tagHtml = `<span class="p-tag">У грі</span>`;
+      }
+    }
+    div.innerHTML = `
+      <span class="avatar" style="background:${p.color}">${initialsOf(p.name)}</span>
+      <span class="p-name"><span class="n">${escapeHtml(p.name)}</span>${tagHtml}</span>
+      <span class="p-actions">
+        <button class="chip-btn${p.absent ? ' active' : ''}" onclick="toggleAbsent('${p.id}')">${p.absent ? 'Повернути' : 'Відсутній'}</button>
+        <button class="chip-btn danger" onclick="deleteParticipant('${p.id}')">✕</button>
+      </span>`;
+    list.appendChild(div);
+  });
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ==================== КОЛЕСО (canvas) ==================== */
+let currentSegments = [];
+let currentRotation = 0;
+
+function fontSizeFor(name){
+  if(name.length > 16) return 24;
+  if(name.length > 11) return 28;
+  return 32;
+}
+function truncateLabel(name){
+  return name.length > 18 ? name.slice(0,16) + '…' : name;
+}
+
+function drawWheel(){
+  const canvas = document.getElementById('wheelCanvas');
+  const ctx = canvas.getContext('2d');
+  const size = 760;
+  const cx = size/2, cy = size/2;
+  const r = size/2 - 22;
+  ctx.clearRect(0,0,size,size);
+
+  const { rows, totalWeight } = computeWeights();
+  const eligible = rows.filter(r => !r.onCooldown && r.weight > 0);
+
+  if(eligible.length === 0){
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.fillStyle = 'rgba(20,16,38,0.9)'; ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.font = '600 30px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(state.participants.length === 0 ? 'Додайте учасників' : 'Немає активних учасників', cx, cy);
+    currentSegments = [];
+    return;
+  }
+
+  let cursor = 0;
+  currentSegments = [];
+  eligible.forEach(row => {
+    const angle = (row.weight / eligible.reduce((s,x)=>s+x.weight,0)) * 360;
+    const start = cursor, end = cursor + angle;
+    currentSegments.push({ id: row.p.id, name: row.p.name, color: row.p.color, start, end, mid: start + angle/2 });
+
+    const startRad = (start - 90) * Math.PI/180;
+    const endRad = (end - 90) * Math.PI/180;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,startRad,endRad);
+    ctx.closePath();
+    const grad = ctx.createRadialGradient(cx,cy,r*0.05,cx,cy,r);
+    grad.addColorStop(0, shade(row.p.color, 16));
+    grad.addColorStop(1, row.p.color);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.lineWidth = 1.8;
+    ctx.strokeStyle = 'rgba(202,163,77,0.85)';
+    ctx.stroke();
+
+    cursor = end;
+  });
+
+  /* тонке хромоване кільце: срібло впритул до скла + золото зовні */
+  ctx.beginPath();
+  ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.strokeStyle = '#e8e8ec';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx,cy,r+5,0,Math.PI*2);
+  ctx.strokeStyle = '#caa34d';
+  ctx.lineWidth = 6;
+  ctx.stroke();
+
+  /* сяйво рідкого скла поверх секторів */
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.clip();
+  const sheen = ctx.createRadialGradient(cx-r*0.35, cy-r*0.42, 10, cx-r*0.35, cy-r*0.42, r*1.05);
+  sheen.addColorStop(0, 'rgba(255,255,255,0.18)');
+  sheen.addColorStop(0.5, 'rgba(255,255,255,0.05)');
+  sheen.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = sheen;
+  ctx.fillRect(cx-r, cy-r, r*2, r*2);
+  ctx.restore();
+
+  /* підписи малюються поверх сяйва, щоб лишались чіткими */
+  currentSegments.forEach(seg => {
+    const midRad = (seg.mid - 90) * Math.PI/180;
+    ctx.save();
+    ctx.translate(cx + Math.cos(midRad) * r * 0.66, cy + Math.sin(midRad) * r * 0.66);
+    ctx.rotate(midRad + Math.PI/2);
+    ctx.font = `800 ${fontSizeFor(seg.name)}px -apple-system, "Segoe UI", sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = 'rgba(10,8,18,0.75)';
+    ctx.strokeText(truncateLabel(seg.name), 0, 0);
+    ctx.fillStyle = '#fbf3da';
+    ctx.fillText(truncateLabel(seg.name), 0, 0);
+    ctx.restore();
+  });
+}
+
+function shade(hex, percent){
+  const num = parseInt(hex.slice(1),16);
+  let r = (num >> 16) + Math.round(255*percent/100);
+  let g = ((num >> 8) & 0x00FF) + Math.round(255*percent/100);
+  let b = (num & 0x0000FF) + Math.round(255*percent/100);
+  r = Math.min(255, Math.max(0, r));
+  g = Math.min(255, Math.max(0, g));
+  b = Math.min(255, Math.max(0, b));
+  return `rgb(${r},${g},${b})`;
+}
+
+/* ==================== ЗВУК (Web Audio, без файлів) ==================== */
+let audioCtx = null;
+function getAudioCtx(){
+  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function playTone(freq, duration, type, vol){
+  if(!state.settings.sound) return;
+  try{
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol || 0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(); osc.stop(ctx.currentTime + duration);
+  }catch(e){}
+}
+function playTick(){ playTone(700 + Math.random()*220, 0.06, 'square', 0.08); }
+function playWinChime(){
+  [523.25, 659.25, 783.99, 1046.5].forEach((f,i) => {
+    setTimeout(() => playTone(f, 0.5, 'triangle', 0.14), i*110);
+  });
+}
+function scheduleTicks(totalMs){
+  let t = 0, delay = 55;
+  const grow = 1.085;
+  while(t < totalMs - 120){
+    setTimeout(playTick, t);
+    t += delay;
+    delay *= grow;
+  }
+}
+
+/* ==================== КОНФЕТІ ==================== */
+let confettiParticles = [];
+let confettiRAF = null;
+function fireConfetti(){
+  const canvas = document.getElementById('confettiCanvas');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const colors = ['#875A7B','#017E84','#FFC94D','#FF6FA5','#3DD9E8','#5B7CFA'];
+  confettiParticles = [];
+  for(let i=0;i<160;i++){
+    confettiParticles.push({
+      x: w/2 + (Math.random()-0.5)*120,
+      y: h*0.28 + (Math.random()-0.5)*60,
+      vx: (Math.random()-0.5)*9,
+      vy: -Math.random()*9 - 3,
+      size: 5 + Math.random()*6,
+      color: colors[Math.floor(Math.random()*colors.length)],
+      rot: Math.random()*360,
+      vrot: (Math.random()-0.5)*14,
+      life: 0,
+      maxLife: 110 + Math.random()*40,
+      shape: Math.random() > 0.5 ? 'rect' : 'circle'
+    });
+  }
+  if(confettiRAF) cancelAnimationFrame(confettiRAF);
+  const gravity = 0.28;
+  function step(){
+    ctx.clearRect(0,0,w,h);
+    let alive = false;
+    confettiParticles.forEach(p => {
+      if(p.life >= p.maxLife) return;
+      alive = true;
+      p.vy += gravity;
+      p.x += p.vx; p.y += p.vy;
+      p.rot += p.vrot;
+      p.life++;
+      const fade = 1 - Math.max(0, (p.life - p.maxLife*0.7) / (p.maxLife*0.3));
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, Math.min(1, fade));
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot * Math.PI/180);
+      ctx.fillStyle = p.color;
+      if(p.shape === 'rect'){ ctx.fillRect(-p.size/2, -p.size/3, p.size, p.size*0.6); }
+      else{ ctx.beginPath(); ctx.arc(0,0,p.size/2,0,Math.PI*2); ctx.fill(); }
+      ctx.restore();
+    });
+    if(alive){ confettiRAF = requestAnimationFrame(step); }
+    else{ ctx.clearRect(0,0,w,h); }
+  }
+  step();
+}
+
+/* ==================== ЖЕРЕБКУВАННЯ ==================== */
+function startRaffle(){
+  const { rows, totalWeight } = computeWeights();
+  const eligible = rows.filter(r => !r.onCooldown && r.weight > 0);
+
+  if(eligible.length === 0){
+    alert('Немає доступних учасників для розіграшу. Перевірте позначки «Відсутній» або додайте людей.');
+    return;
+  }
+  if(eligible.length === 1){
+    // єдиний варіант — все одно крутимо для ефекту
+  }
+
+  drawWheel();
+  if(currentSegments.length === 0) return;
+
+  const totalW = eligible.reduce((s,r)=>s+r.weight,0);
+  let rnd = Math.random() * totalW;
+  let winnerRow = eligible[eligible.length - 1];
+  for(const r of eligible){
+    if(rnd < r.weight){ winnerRow = r; break; }
+    rnd -= r.weight;
+  }
+  const winnerId = winnerRow.p.id;
+  const seg = currentSegments.find(s => s.id === winnerId);
+  if(!seg) return;
+
+  const targetMod = (90 - seg.mid + 360) % 360;
+  let diff = targetMod - (currentRotation % 360);
+  if(diff < 0) diff += 360;
+  const spins = 360 * 6;
+  currentRotation += spins + diff;
+
+  const disc = document.getElementById('wheelDisc');
+  disc.style.transform = `rotate(${currentRotation}deg)`;
+
+  const btn = document.getElementById('spinBtn');
+  btn.disabled = true; btn.innerText = 'Обертається...';
+  document.getElementById('winnerOverlay').classList.remove('show');
+
+  const spinMs = 6400;
+  scheduleTicks(spinMs - 400);
+
+  setTimeout(() => {
+    finishRaffle(winnerRow.p);
+  }, spinMs);
+}
+
+function finishRaffle(winner){
+  state.drawCounter += 1;
+  winner.lastWinDraw = state.drawCounter;
+  const dateStr = new Date().toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit', year:'numeric' });
+  state.history.unshift({ name: winner.name, date: dateStr, by: state.currentUser || 'Анонім' });
+  if(state.history.length > 30) state.history = state.history.slice(0,30);
+  saveState();
+
+  document.getElementById('winnerNameEl').innerText = winner.name;
+  document.getElementById('winnerDateEl').innerText = dateStr + (state.currentUser ? ' · провів(-ла) ' + state.currentUser : '');
+  const badgeWrap = document.getElementById('badgeWrap');
+  if(state.settings.prizeImage){
+    badgeWrap.innerHTML = `<img src="${state.settings.prizeImage}" alt="Приз">`;
+  } else {
+    badgeWrap.innerHTML = defaultBadgeSVG();
+  }
+  document.getElementById('winnerOverlay').classList.add('show');
+
+  playWinChime();
+  fireConfetti();
+
+  const btn = document.getElementById('spinBtn');
+  btn.disabled = false; btn.innerText = 'Запустити жеребкування';
+
+  renderRoster();
+  drawWheel();
+  renderHistory();
+}
+
+function closeWinner(){
+  document.getElementById('winnerOverlay').classList.remove('show');
+}
+function copyResult(){
+  const name = document.getElementById('winnerNameEl').innerText;
+  const dateEl = document.getElementById('winnerDateEl').innerText;
+  const text = `🚀 Реліз Менеджер: ${name} (${dateEl})`;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).catch(()=>{});
+  }
+  const btn = event.target;
+  const old = btn.innerText;
+  btn.innerText = '✅ Скопійовано';
+  setTimeout(()=>{ btn.innerText = old; }, 1400);
+}
+
+/* ==================== ІСТОРІЯ ==================== */
+function toggleHistory(){
+  document.getElementById('historyPanel').classList.toggle('hidden');
+}
+function renderHistory(){
+  const list = document.getElementById('historyList');
+  document.getElementById('historyCount').innerText = state.history.length;
+  list.innerHTML = '';
+  if(state.history.length === 0){
+    list.innerHTML = '<li><span class="t-name">Історія порожня</span><div class="t-meta">Ще жодного розіграшу не було</div></li>';
+    return;
+  }
+  state.history.forEach(h => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="t-name">🏆 ${escapeHtml(h.name)}</span><div class="t-meta">${h.date} · провів(-ла) ${escapeHtml(h.by)}</div>`;
+    list.appendChild(li);
+  });
+}
+function clearHistory(){
+  if(!confirm('Очистити всю історію розіграшів?')) return;
+  state.history = [];
+  saveState();
+  renderHistory();
+}
+
+/* Закриття модалок по кліку на фон */
+document.addEventListener('click', function(e){
+  ['userModal','settingsModal'].forEach(id => {
+    const modal = document.getElementById(id);
+    if(e.target === modal) modal.classList.add('hidden');
+  });
+});
+</script>
+</body>
+</html>
